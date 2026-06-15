@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 Interactive Impact Simulation - Meteorite Madness</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+        :root {
+            --color-primary: #3b82f6;
+            --color-secondary: #8b5cf6;
+            --color-accent: #60a5fa;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-success: #10b981;
+            --color-dark: #0b0f19;
+            --color-light: #e2e8f0;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #020617;
+            color: var(--color-light);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            grid-template-rows: 80px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo i {
+            color: var(--color-accent);
+            font-size: 2.2rem;
+            text-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+        }
+
+        .logo h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            padding: 0.6rem 1.2rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            color: var(--color-accent);
+            text-decoration: none;
+            transition: var(--transition);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            color: #fff;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .status-value {
+            color: var(--color-accent);
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+        }
+
+        /* Sidebar Glassmorphism */
+        .sidebar {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            overflow-y: auto;
+            padding: 1.5rem;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        /* Custom Scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(96, 165, 250, 0.3);
+            border-radius: 10px;
+        }
+
+        .panel-section {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+        
+        .panel-section:hover {
+            border-color: rgba(96, 165, 250, 0.3);
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.2rem;
+            color: var(--color-accent);
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .panel-title.warning {
+            color: var(--color-warning);
+        }
+
+        .panel-title i {
+            font-size: 1.4rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+        
+        .input-group select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%2360a5fa' d='M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            background-size: 12px;
+            appearance: none;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .slider-container {
+            margin: 1.5rem 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .slider-value {
+            color: var(--color-accent);
+            font-weight: 800;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+            transition: var(--transition);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            filter: brightness(1.1);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, #8b5cf6, #c084fc);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        /* AI Output */
+        .ai-output {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .ai-content {
+            color: #e2e8f0;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        /* Custom scrollbar for AI output */
+        .ai-output::-webkit-scrollbar {
+            width: 4px;
+        }
+        .ai-output::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+
+        /* Response Window */
+        .response-window {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .response-method {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border-left: 4px solid var(--color-accent);
+            border-top: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+        
+        .response-method:hover {
+            background: rgba(30, 41, 59, 0.8);
+            transform: translateX(5px);
+        }
+
+        .method-name {
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .method-time {
+            color: var(--color-accent);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        /* Severity Indicator */
+        .severity-indicator {
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 800;
+            text-align: center;
+            margin-left: 1rem;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .severity-level {
+            font-size: 0.9rem;
+        }
+
+        .severity-minor {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .severity-moderate {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .severity-severe {
+            background: linear-gradient(135deg, #ea580c, #c2410c);
+            color: white;
+        }
+
+        .severity-catastrophic {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Emergency Mode */
+        .emergency-mode {
+            filter: hue-rotate(45deg) saturate(1.5);
+        }
+
+        .emergency-mode .header {
+            background: rgba(153, 27, 27, 0.9);
+            border-bottom-color: #f87171;
+        }
+
+        /* Map container */
+        .map-container {
+            position: relative;
+            background: #020617;
+            z-index: 1;
+        }
+
+        #impact-map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Floating Overlays */
+        .simulation-overlay {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            min-width: 350px;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .simulation-title {
+            color: #f87171;
+            margin-bottom: 1.2rem;
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .simulation-title::before {
+            content: '';
+            display: block;
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse-danger 1s infinite;
+        }
+
+        .simulation-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .stat {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        /* Map Layers Control Overlay */
+        .layers-control {
+            position: absolute;
+            bottom: 2.5rem;
+            right: 2.5rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #cbd5e1;
+            transition: var(--transition);
+        }
+        
+        .layer-item:hover {
+            color: #fff;
+        }
+
+        .layer-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .layer-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-accent);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .layer-checkbox.checked {
+            background: var(--color-accent);
+        }
+
+        .layer-checkbox.checked::after {
+            content: '✓';
+            color: #0f172a;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 380px 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                height: auto;
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .sidebar {
+                max-height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-meteor"></i>
+                <h1>Interactive Impact Simulation System</h1>
+            </div>
+            <div class="header-nav">
+                <a href="/" class="nav-btn"><i class="fas fa-home"></i> Dashboard</a>
+                <button class="nav-btn" id="emergency-toggle">
+                    <i class="fas fa-exclamation-triangle"></i> Emergency View
+                </button>
+                <div class="severity-indicator" id="severity-indicator">
+                    <span class="severity-level">MINOR</span>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span>Status:</span>
+                    <span class="status-value" id="system-status" style="color: var(--color-success);">READY</span>
+                </div>
+                <div class="status-item">
+                    <span>UTC:</span>
+                    <span class="status-value" id="utc-time">--:--:--</span>
+                </div>
+                <div class="status-item">
+                    <span>Simulation:</span>
+                    <span class="status-value" id="sim-time">T+0s</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Meteoroid Data -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-meteor"></i>
+                    <h3>Meteoroid Parameters</h3>
+                </div>
+                
+                <div class="input-group">
+                    <label for="meteoroid-id">Meteoroid ID/Name</label>
+                    <input type="text" id="meteoroid-id" value="Impactor-2025">
+                </div>
+
+                <div class="input-group">
+                    <label for="meteoroid-type">Composition Type</label>
+                    <select id="meteoroid-type">
+                        <option value="rocky">Rocky (Density: 3000 kg/m³)</option>
+                        <option value="metallic">Metallic (Density: 7800 kg/m³)</option>
+                        <option value="carbonaceous">Carbonaceous (Density: 1500 kg/m³)</option>
+                        <option value="porous">Porous (Density: 1000 kg/m³)</option>
+                        <option value="conglomerate">Conglomerate (Density: 4000 kg/m³)</option>
+                    </select>
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Diameter (m)</span>
+                        <span class="slider-value" id="diameter-value">100</span>
+                    </div>
+                    <input type="range" id="diameter" min="10" max="1000" value="100" step="10">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Velocity (km/s)</span>
+                        <span class="slider-value" id="velocity-value">20</span>
+                    </div>
+                    <input type="range" id="velocity" min="5" max="72" value="20" step="1">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Entry Angle (°)</span>
+                        <span class="slider-value" id="angle-value">45</span>
+                    </div>
+                    <input type="range" id="angle" min="5" max="90" value="45" step="5">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Density (kg/m³)</span>
+                        <span class="slider-value" id="density-value">3000</span>
+                    </div>
+                    <input type="range" id="density" min="1000" max="8000" value="3000" step="100">
+                </div>
+            </div>
+
+            <!-- Impact Configuration -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-crosshairs"></i>
+                    <h3>Impact Configuration</h3>
+                </div>
+
+                <div class="input-group">
+                    <label for="simulation-scenario">Simulation Scenario</label>
+                    <select id="simulation-scenario">
+                        <option value="urban">Urban Impact (50-200m)</option>
+                        <option value="oceanic">Oceanic Impact (500-1000m)</option>
+                        <option value="airburst">Airburst (Chelyabinsk-like)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="impact-location">Impact Location (Lat, Lng)</label>
+                    <input type="text" id="impact-location" value="40.7128, -74.0060" placeholder="e.g., 40.7128, -74.0060 (NYC)">
+                </div>
+
+                <div class="input-group">
+                    <label for="historical-scenario">Historical Scenarios</label>
+                    <select id="historical-scenario">
+                        <option value="">Select a historical event...</option>
+                        <option value="chelyabinsk">Chelyabinsk (2013) - 20m, 19 km/s</option>
+                        <option value="tunguska">Tunguska (1908) - 60m, 27 km/s</option>
+                        <option value="chicxulub">Chicxulub (66 MYA) - 10km, 20 km/s</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="run-simulation">
+                        <i class="fas fa-play"></i>Run Simulation
+                    </button>
+                    <button class="btn btn-warning" id="reset-simulation">
+                        <i class="fas fa-redo"></i>Reset
+                    </button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-success" id="export-report">
+                        <i class="fas fa-download"></i>Export Report
+                    </button>
+                    <button class="btn btn-danger" id="load-nasa-data">
+                        <i class="fas fa-satellite"></i>Load NASA Data
+                    </button>
+                </div>
+
+                <!-- AI Analysis -->
+                <div class="button-group">
+                    <button class="btn btn-accent" id="generate-defense">
+                        <i class="fas fa-shield-alt"></i>AI Defense Strategy
+                    </button>
+                    <button class="btn btn-accent" id="generate-narrative">
+                        <i class="fas fa-file-alt"></i>AI Impact Report
+                    </button>
+                </div>
+                
+                <div id="ai-output" class="ai-output" style="display: none;">
+                    <div class="ai-content"></div>
+                </div>
+            </div>
+
+            <!-- Response Window Calculator -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-clock"></i>
+                    <h3>Response Window</h3>
+                </div>
+                
+                <div class="response-window">
+                    <div class="response-method">
+                        <div class="method-name">Kinetic Impactor</div>
+                        <div class="method-time" id="kinetic-time">--</div>
+                    </div>
+                    <div class="response-method">
+                        <div class="method-name">Nuclear Deflection</div>
+                        <div class="method-time" id="nuclear-time">--</div>
+                    </div>
+                    <div class="response-method">
+                        <div class="method-name">Gravity Tractor</div>
+                        <div class="method-time" id="gravity-time">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Metrics -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>Impact Metrics</h3>
+                </div>
+                
+                <div class="simulation-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="energy-value">0.00</div>
+                        <div class="stat-label">Energy (MT)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="crater-value">0.0</div>
+                        <div class="stat-label">Crater (km)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="overpressure-value">0</div>
+                        <div class="stat-label">Overpressure (kPa)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="population-value">0</div>
+                        <div class="stat-label">Population Affected</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map -->
+        <main class="map-container">
+            <div id="impact-map"></div>
+            
+            <div class="simulation-overlay" id="simulation-overlay" style="display: none;">
+                <div class="simulation-title">Simulation in Progress</div>
+                <div class="simulation-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="sim-altitude">--</div>
+                        <div class="stat-label">Altitude (km)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="sim-velocity">--</div>
+                        <div class="stat-label">Velocity (km/s)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="sim-mass">--</div>
+                        <div class="stat-label">Mass Remaining</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="sim-energy">--</div>
+                        <div class="stat-label">Energy Released</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layers-control">
+                <div class="layer-item" id="layer-population">
+                    <div class="layer-checkbox checked"></div>
+                    <span>Population Density</span>
+                </div>
+                <div class="layer-item" id="layer-infrastructure">
+                    <div class="layer-checkbox checked"></div>
+                    <span>Critical Infrastructure</span>
+                </div>
+                <div class="layer-item" id="layer-blast">
+                    <div class="layer-checkbox checked"></div>
+                    <span>Shock Wave</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="/static/js/impact_simulation.js"></script>
+    <script>
+        // Advanced Features Integration
+        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // TODO: Replace with your actual API key
+        
+        // Historical Scenarios Data
+        const historicalScenarios = {
+            chelyabinsk: {
+                name: 'Chelyabinsk',
+                diameter: 20,
+                velocity: 19,
+                angle: 20,
+                density: 3000,
+                composition: 'rocky',
+                location: '54.8, 61.1',
+                description: '2013 Chelyabinsk meteor airburst over Russia'
+            },
+            tunguska: {
+                name: 'Tunguska',
+                diameter: 60,
+                velocity: 27,
+                angle: 30,
+                density: 1000,
+                composition: 'porous',
+                location: '60.9, 101.9',
+                description: '1908 Tunguska event in Siberia'
+            },
+            chicxulub: {
+                name: 'Chicxulub',
+                diameter: 10000,
+                velocity: 20,
+                angle: 60,
+                density: 3000,
+                composition: 'rocky',
+                location: '21.4, -89.5',
+                description: 'Dinosaur extinction event 66 million years ago'
+            }
+        };
+
+        // Load Historical Scenario
+        document.getElementById('historical-scenario').addEventListener('change', function(e) {
+            const scenario = historicalScenarios[e.target.value];
+            if (!scenario) return;
+            
+            document.getElementById('diameter').value = scenario.diameter;
+            document.getElementById('diameter-value').textContent = scenario.diameter;
+            document.getElementById('velocity').value = scenario.velocity;
+            document.getElementById('velocity-value').textContent = scenario.velocity;
+            document.getElementById('angle').value = scenario.angle;
+            document.getElementById('angle-value').textContent = scenario.angle;
+            document.getElementById('density').value = scenario.density;
+            document.getElementById('density-value').textContent = scenario.density;
+            document.getElementById('meteoroid-type').value = scenario.composition;
+            document.getElementById('impact-location').value = scenario.location;
+            document.getElementById('meteoroid-id').value = scenario.name;
+            
+            // Show notification
+            alert(`Loaded ${scenario.name} scenario: ${scenario.description}`);
+        });
+
+        // Severity Classification
+        function updateSeverity(energyMT) {
+            const indicator = document.getElementById('severity-indicator');
+            const levelSpan = indicator.querySelector('.severity-level');
+            
+            indicator.className = 'severity-indicator';
+            
+            if (energyMT < 1) {
+                levelSpan.textContent = 'MINOR';
+                indicator.classList.add('severity-minor');
+            } else if (energyMT < 10) {
+                levelSpan.textContent = 'MODERATE';
+                indicator.classList.add('severity-moderate');
+            } else if (energyMT < 100) {
+                levelSpan.textContent = 'SEVERE';
+                indicator.classList.add('severity-severe');
+            } else {
+                levelSpan.textContent = 'CATASTROPHIC';
+                indicator.classList.add('severity-catastrophic');
+            }
+        }
+
+        // Response Window Calculator
+        function calculateResponseWindow(diameter, velocity) {
+            const mass = (4/3) * Math.PI * Math.pow(diameter/2, 3) * 3000; // kg
+            
+            // Simplified calculations (years before impact)
+            const kineticTime = Math.max(1, Math.min(20, diameter / 50));
+            const nuclearTime = Math.max(0.5, Math.min(10, diameter / 100));
+            const gravityTime = Math.max(5, Math.min(50, diameter / 20));
+            
+            document.getElementById('kinetic-time').textContent = `${kineticTime.toFixed(1)} years`;
+            document.getElementById('nuclear-time').textContent = `${nuclearTime.toFixed(1)} years`;
+            document.getElementById('gravity-time').textContent = `${gravityTime.toFixed(1)} years`;
+        }
+
+        // Update response window when parameters change
+        ['diameter', 'velocity'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                const diameter = parseFloat(document.getElementById('diameter').value);
+                const velocity = parseFloat(document.getElementById('velocity').value);
+                calculateResponseWindow(diameter, velocity);
+            });
+        });
+
+        // Emergency Mode Toggle
+        document.getElementById('emergency-toggle').addEventListener('click', function() {
+            document.body.classList.toggle('emergency-mode');
+            this.innerHTML = document.body.classList.contains('emergency-mode') 
+                ? '<i class="fas fa-check-circle"></i> Normal View'
+                : '<i class="fas fa-exclamation-triangle"></i> Emergency View';
+        });
+
+        // AI Defense Strategy Generator
+        document.getElementById('generate-defense').addEventListener('click', async function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            
+            const diameter = document.getElementById('diameter').value;
+            const velocity = document.getElementById('velocity').value;
+            const energy = document.getElementById('energy-value').textContent;
+            
+            const prompt = `Generate a comprehensive planetary defense strategy for a ${diameter}m asteroid traveling at ${velocity} km/s with ${energy} MT of kinetic energy. Include: 1) Detection requirements, 2) Deflection methods (kinetic impactor, nuclear, gravity tractor), 3) Timeline and mission requirements, 4) Backup plans, 5) Evacuation protocols if deflection fails.`;
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                const aiOutput = document.getElementById('ai-output');
+                const aiContent = aiOutput.querySelector('.ai-content');
+                
+                aiContent.textContent = data.candidates[0].content.parts[0].text;
+                aiOutput.style.display = 'block';
+                
+            } catch (error) {
+                alert('AI generation failed. Please check your API key and internet connection.');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-shield-alt"></i>AI Defense Strategy';
+            }
+        });
+
+        // AI Impact Narrative Generator
+        document.getElementById('generate-narrative').addEventListener('click', async function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            
+            const diameter = document.getElementById('diameter').value;
+            const velocity = document.getElementById('velocity').value;
+            const energy = document.getElementById('energy-value').textContent;
+            const crater = document.getElementById('crater-value').textContent;
+            const population = document.getElementById('population-value').textContent;
+            const location = document.getElementById('impact-location').value;
+            
+            const prompt = `Write a detailed impact assessment report for a ${diameter}m meteorite impact at ${location}, traveling at ${velocity} km/s, releasing ${energy} MT of energy, creating a ${crater} km crater, affecting ${population} people. Include: 1) Immediate impact effects (blast, thermal radiation, seismic), 2) Environmental consequences, 3) Casualty estimates, 4) Infrastructure damage, 5) Long-term recovery timeline.`;
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                const aiOutput = document.getElementById('ai-output');
+                const aiContent = aiOutput.querySelector('.ai-content');
+                
+                aiContent.textContent = data.candidates[0].content.parts[0].text;
+                aiOutput.style.display = 'block';
+                
+            } catch (error) {
+                alert('AI generation failed. Please check your API key and internet connection.');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-file-alt"></i>AI Impact Report';
+            }
+        });
+
+        // Audio Context for Sound Effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playWarningSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function playImpactSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 50;
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+        }
+
+        // Update severity when energy changes
+        const energyObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                    const energyText = document.getElementById('energy-value').textContent;
+                    const energy = parseFloat(energyText) || 0;
+                    updateSeverity(energy);
+                    
+                    if (energy > 10) {
+                        playWarningSound();
+                    }
+                }
+            });
+        });
+
+        const energyElement = document.getElementById('energy-value');
+        if (energyElement) {
+            energyObserver.observe(energyElement, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateResponseWindow(100, 20);
+            updateSeverity(0);
+        });
+    </script>
+</body>
+</html>
